@@ -4594,8 +4594,10 @@ run_mimehandler(struct tab *t, char *mime_type, WebKitNetworkRequest *request)
 	m = find_mime_type(mime_type);
 	if (m == NULL)
 		return (1);
-	if (m->mt_download)
+	if (m->mt_download) {
+		t->mt_auto_download = 1;
 		return (1);
+	}
 
 	return (fork_exec(t, m->mt_action,
 	    webkit_network_request_get_uri(request),
@@ -4683,6 +4685,11 @@ webview_mimetype_cb(WebKitWebView *wv, WebKitWebFrame *frame,
 		return (TRUE);
 	}
 
+	if (t->mt_auto_download == 1) {
+		webkit_web_policy_decision_download(decision);
+		return (TRUE);
+	}
+
 	if (webkit_web_view_can_show_mime_type(wv, mime_type) == FALSE) {
 		webkit_web_policy_decision_download(decision);
 		return (TRUE);
@@ -4758,9 +4765,12 @@ download_start(struct tab *t, struct download *d, int flag)
 		ret = FALSE;
 		gtk_label_set_text(GTK_LABEL(t->label), "Download Failed");
 	} else {
-		/* connect "download first" mime handler */
-		g_signal_connect(G_OBJECT(d->download), "notify::status",
-		    G_CALLBACK(download_status_changed_cb), NULL);
+		if (t->mt_auto_download) {
+			/* connect "download first" mime handler */
+			g_signal_connect(G_OBJECT(d->download), "notify::status",
+			    G_CALLBACK(download_status_changed_cb), NULL);
+			t->mt_auto_download = 0;
+		}
 
 		/* get from history */
 		g_object_ref(d->download);

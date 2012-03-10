@@ -234,6 +234,10 @@ struct tab {
 	gchar			*tmp_uri;
 	int			popup; /* 1 if cmd_entry has popup visible */
 #ifdef USE_THREADS
+
+	/* 1 if next download is started due to @mimetype handler */
+	int			mt_auto_download;
+
 	/* https thread stuff */
 	GThread			*thread;
 #endif
