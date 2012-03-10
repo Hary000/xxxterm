@@ -5925,13 +5925,13 @@ cmd_keypress_cb(GtkEntry *w, GdkEventKey *e, struct tab *t)
 	switch (e->keyval) {
 	case GDK_Tab:
 		if (c[0] == ':')
-			cmd_complete(t, (char *)&c[1], 1);
+			cmd_complete(t, (char *)&c[1], -1);
 		else if (c[0] == '.' || c[0] == ',')
 			run_script(t, "hints.focusNextHint();");
 		goto done;
 	case GDK_ISO_Left_Tab:
 		if (c[0] == ':')
-			cmd_complete(t, (char *)&c[1], -1);
+			cmd_complete(t, (char *)&c[1], 1);
 		else if (c[0] == '.' || c[0] == ',')
 			run_script(t, "hints.focusPreviousHint();");
 		goto done;
