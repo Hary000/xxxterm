@@ -33,8 +33,8 @@ function Hints() {
                + "padding:0px 1px;position:absolute;",
         hintClass: "hinting_mode_hint",
         hintClassFocus: "hinting_mode_hint_focus",
-        elemBackground: "#ff0",
-        elemBackgroundFocus: "#8f0",
+        elemBackground: "#eee",
+        elemBackgroundFocus: "#4c0",
         elemColor: "#000"
     };
 
