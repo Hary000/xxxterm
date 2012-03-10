@@ -104,19 +104,22 @@ TAILQ_HEAD(command_list, command_entry);
 #define XT_INVALID_MARK		(-1) /* XXX this is a double, maybe use something else, like a nan */
 
 /* colors */
-#define XT_COLOR_RED		"#cc0000"
-#define XT_COLOR_YELLOW		"#ffff66"
-#define XT_COLOR_BLUE		"lightblue"
-#define XT_COLOR_GREEN		"#99ff66"
+#define XT_COLOR_RED		"#aa2222"
+#define XT_COLOR_YELLOW		"#887700"
+#define XT_COLOR_BLUE		"#115599"
+#define XT_COLOR_GREEN		"#118811"
 #define XT_COLOR_WHITE		"white"
 #define XT_COLOR_BLACK		"black"
 
-#define XT_COLOR_CT_BACKGROUND	"#000000"
-#define XT_COLOR_CT_INACTIVE	"#dddddd"
-#define XT_COLOR_CT_ACTIVE	"#bbbb00"
-#define XT_COLOR_CT_SEPARATOR	"#555555"
+#define XT_COLOR_CT_ACTIVE_BG	"#cccccc"
+#define XT_COLOR_CT_ACTIVE_FG	"#111111"
+#define XT_COLOR_CT_INACTIVE_BG	"#555555"
+#define XT_COLOR_CT_INACTIVE_FG	"#eeeeee"
+#define XT_COLOR_CT_SEPARATOR	"#eeeeee"
 
-#define XT_COLOR_SB_SEPARATOR	"#555555"
+#define XT_COLOR_SB_SEPARATOR	"#aaaaaa"
+#define XT_COLOR_SB_NORMAL_BG	"#555555"
+#define XT_COLOR_SB_NORMAL_FG	"#eeeeee"
 
 #define XT_PROTO_DELIM		"://"
 
@@ -2258,7 +2261,13 @@ url_set_visibility(void)
 void
 notebook_tab_set_visibility(void)
 {
-	if (show_tabs == 0) {
+	unsigned int 		n = 0;
+	struct tab		*t;
+
+	TAILQ_FOREACH(t, &tabs, entry)
+		n++;
+	
+	if (n < 2 || show_tabs == 0) {
 		gtk_widget_hide(tab_bar);
 		gtk_notebook_set_show_tabs(notebook, FALSE);
 	} else {
@@ -3451,9 +3460,9 @@ white:
 	gtk_widget_modify_base(t->uri_entry, GTK_STATE_NORMAL, &color);
 
 	if (!strcmp(col_str, XT_COLOR_WHITE))
-		statusbar_modify_attr(t, col_str, XT_COLOR_BLACK);
+		statusbar_modify_attr(t, col_str, XT_COLOR_SB_NORMAL_BG);
 	else
-		statusbar_modify_attr(t, XT_COLOR_BLACK, col_str);
+		statusbar_modify_attr(t, XT_COLOR_WHITE, col_str);
 
 	if (error_str && error_str[0] != '\0')
 		show_oops(t, "%s", error_str);
@@ -3515,9 +3524,9 @@ done:
 		gtk_widget_modify_base(t->uri_entry, GTK_STATE_NORMAL, &color);
 
 		if (!strcmp(col_str, XT_COLOR_WHITE))
-			statusbar_modify_attr(t, col_str, XT_COLOR_BLACK);
+			statusbar_modify_attr(t, col_str, XT_COLOR_SB_NORMAL_BG);
 		else
-			statusbar_modify_attr(t, XT_COLOR_BLACK, col_str);
+			statusbar_modify_attr(t, XT_COLOR_WHITE, col_str);
 	}
 }
 
@@ -3838,7 +3847,7 @@ notify_load_status_cb(WebKitWebView* wview, GParamSpec* pspec, struct tab *t)
 		/* assume we are a new address */
 		gdk_color_parse("white", &color);
 		gtk_widget_modify_base(t->uri_entry, GTK_STATE_NORMAL, &color);
-		statusbar_modify_attr(t, "white", XT_COLOR_BLACK);
+		statusbar_modify_attr(t, XT_COLOR_SB_NORMAL_FG, XT_COLOR_SB_NORMAL_BG);
 
 		/* take focus if we are visible */
 		focus_webview(t);
@@ -6496,19 +6505,24 @@ recolor_compact_tabs(void)
 {
 	struct tab		*t;
 	int			 curid = 0;
-	GdkColor		 color;
+	GdkColor		 fg, bg;
 
-	gdk_color_parse(XT_COLOR_CT_INACTIVE, &color);
-	TAILQ_FOREACH(t, &tabs, entry)
-		gtk_widget_modify_fg(t->tab_elems.label, GTK_STATE_NORMAL,
-		    &color);
+	gdk_color_parse(XT_COLOR_CT_INACTIVE_BG, &bg);
+	gdk_color_parse(XT_COLOR_CT_INACTIVE_FG, &fg);
+	TAILQ_FOREACH(t, &tabs, entry) {
+		gtk_widget_modify_bg(t->tab_elems.eventbox, GTK_STATE_NORMAL, &bg);
+		gtk_widget_modify_fg(t->tab_elems.label, GTK_STATE_NORMAL, &fg);
+	}
 
 	curid = gtk_notebook_get_current_page(notebook);
 	TAILQ_FOREACH(t, &tabs, entry)
 		if (t->tab_id == curid) {
-			gdk_color_parse(XT_COLOR_CT_ACTIVE, &color);
+			gdk_color_parse(XT_COLOR_CT_ACTIVE_BG, &bg);
+			gdk_color_parse(XT_COLOR_CT_ACTIVE_FG, &fg);
+			gtk_widget_modify_bg(t->tab_elems.eventbox,
+			    GTK_STATE_NORMAL, &bg);
 			gtk_widget_modify_fg(t->tab_elems.label,
-			    GTK_STATE_NORMAL, &color);
+			    GTK_STATE_NORMAL, &fg);
 			break;
 		}
 }
@@ -6646,6 +6660,7 @@ delete_tab(struct tab *t)
 	}
 
 	recalc_tabs();
+	notebook_tab_set_visibility();
 	recolor_compact_tabs();
 }
 
@@ -6836,7 +6851,7 @@ create_new_tab(char *title, struct undo *u, int focus, int position)
 	t->sbe.zoom = create_sbe(40);
 	t->sbe.buffercmd = create_sbe(60);
 
-	statusbar_modify_attr(t, XT_COLOR_WHITE, XT_COLOR_BLACK);
+	statusbar_modify_attr(t, XT_COLOR_SB_NORMAL_FG, XT_COLOR_SB_NORMAL_BG);
 
 	gtk_box_pack_start(GTK_BOX(t->statusbar_box), t->sbe.statusbar, TRUE,
 	    TRUE, FALSE);
@@ -6919,9 +6934,9 @@ create_new_tab(char *title, struct undo *u, int focus, int position)
 	t->tab_elems.box = gtk_hbox_new(FALSE, 0);
 	t->tab_elems.sep = gtk_vseparator_new();
 
-	gdk_color_parse(XT_COLOR_CT_BACKGROUND, &color);
+	gdk_color_parse(XT_COLOR_CT_INACTIVE_BG, &color);
 	gtk_widget_modify_bg(t->tab_elems.eventbox, GTK_STATE_NORMAL, &color);
-	gdk_color_parse(XT_COLOR_CT_INACTIVE, &color);
+	gdk_color_parse(XT_COLOR_CT_INACTIVE_FG, &color);
 	gtk_widget_modify_fg(t->tab_elems.label, GTK_STATE_NORMAL, &color);
 	gdk_color_parse(XT_COLOR_CT_SEPARATOR, &color);
 	gtk_widget_modify_bg(t->tab_elems.sep, GTK_STATE_NORMAL, &color);
@@ -7065,6 +7080,7 @@ create_new_tab(char *title, struct undo *u, int focus, int position)
 	if (userstyle_global)
 		apply_style(t);
 
+	notebook_tab_set_visibility();
 	recolor_compact_tabs();
 	setzoom_webkit(t, XT_ZOOM_NORMAL);
 	return (t);
